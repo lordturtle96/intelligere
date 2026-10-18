@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Intelligere — private cognitive screening</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f4f6f7;
+  --panel: #ffffff;
+  --panel-soft: #eef2f4;
+  --text: #17252d;
+  --muted: #52636d;
+  --line: #d3dce1;
+  --accent: #245b70;
+  --accent-strong: #164254;
+  --accent-soft: #e1edf1;
+  --focus: #b45309;
+  --good: #23644e;
+  --warn: #815b17;
+  --shadow: 0 8px 28px rgba(17, 36, 45, .07);
+  --radius: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11191e;
+    --panel: #1a252c;
+    --panel-soft: #223039;
+    --text: #ecf2f4;
+    --muted: #b2c0c7;
+    --line: #3a4b55;
+    --accent: #a5d5e5;
+    --accent-strong: #c5e7f0;
+    --accent-soft: #293f49;
+    --focus: #f2c078;
+    --good: #9bd3b8;
+    --warn: #f0cf82;
+    --shadow: 0 8px 28px rgba(0, 0, 0, .18);
+  }
+}
+* { box-sizing: border-box; }
+html { min-height: 100%; background: var(--bg); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .48; }
+button:focus-visible, input:focus-visible, a:focus-visible, label:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+a { color: var(--accent); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.wrap { width: min(100% - 28px, 820px); margin: 0 auto; padding: 20px 0 36px; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 16px; }
+.eyebrow { color: var(--muted); font-size: .82rem; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; }
+.local-note { color: var(--muted); font-size: .84rem; text-align: right; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: clamp(20px, 5vw, 34px);
+}
+.intro-title { font-size: clamp(1.9rem, 6vw, 2.8rem); line-height: 1.13; letter-spacing: -.035em; margin: 0 0 14px; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -.02em; }
+h1 { font-size: clamp(1.55rem, 4.4vw, 2.15rem); margin: 0 0 12px; }
+h2 { font-size: 1.23rem; margin: 28px 0 10px; }
+h3 { font-size: 1.02rem; margin: 18px 0 8px; }
+p { margin: 0 0 14px; }
+.muted { color: var(--muted); }
+.small { font-size: .91rem; }
+.disclaimer { border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 12px; padding: 16px 17px; margin: 22px 0; background: var(--panel-soft); }
+.disclaimer h2 { margin: 0 0 8px; font-size: 1.05rem; }
+.disclaimer p:last-child { margin-bottom: 0; }
+.settings { margin: 20px 0; display: grid; gap: 12px; }
+.checkline { display: flex; gap: 12px; align-items: flex-start; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; min-height: 52px; }
+.checkline input { width: 22px; height: 22px; flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--accent); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.btn {
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  min-height: 48px;
+  padding: 11px 18px;
+  color: var(--panel);
+  background: var(--accent);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.btn:hover:not(:disabled) { background: var(--accent-strong); }
+.btn.secondary { background: transparent; color: var(--text); border-color: var(--line); }
+.btn.secondary:hover:not(:disabled) { background: var(--panel-soft); }
+.btn.danger { border-color: var(--line); background: transparent; color: var(--muted); }
+.saved-box { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.session-bar { position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 8px 0 13px; margin-bottom: 12px; }
+.session-row { display: flex; gap: 14px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.session-meta { min-width: 0; }
+.session-step { color: var(--muted); font-size: .87rem; }
+.session-domain { font-weight: 750; font-size: .98rem; overflow-wrap: anywhere; }
+.meter { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.meter-fill { height: 100%; width: 0%; background: var(--accent); border-radius: inherit; transition: width .15s linear; }
+.question-card { padding: clamp(18px, 4.8vw, 32px); }
+.question-head { margin-bottom: 20px; }
+.question-heading { font-size: clamp(1.35rem, 4.8vw, 1.8rem); line-height: 1.3; margin: 0 0 10px; }
+.instruction { color: var(--muted); font-size: .96rem; margin: 0; }
+.clockline { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 13px; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); }
+.clock-label { color: var(--muted); font-size: .9rem; }
+.clock-value { font-size: 1.08rem; font-weight: 800; min-width: 3.5ch; text-align: right; }
+.prompt { font-size: 1.06rem; margin-bottom: 18px; }
+.matrix-holder { display: flex; justify-content: center; margin: 10px auto 22px; max-width: 100%; }
+.matrix-svg { width: min(100%, 350px); height: auto; color: var(--text); display: block; }
+.option-grid { display: grid; grid-template-columns: 1fr; gap: 9px; margin: 18px 0; }
+.option-grid.visual { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.option {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  border: 1px solid var(--line); background: var(--panel); color: var(--text);
+  border-radius: 12px; min-height: 54px; padding: 10px 13px; width: 100%;
+}
+.option:hover { background: var(--panel-soft); }
+.option[aria-pressed="true"] { border: 2px solid var(--accent); background: var(--accent-soft); padding: 9px 12px; }
+.option-letter { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 800; flex: 0 0 auto; }
+.option-graphic { min-height: 56px; display: flex; align-items: center; justify-content: center; }
+.option-graphic svg { width: 68px; height: 68px; color: var(--text); }
+.choice-label { flex: 1; }
+.matrix-options .option { display: flex; flex-direction: column; gap: 4px; min-height: 112px; justify-content: center; }
+.matrix-options .option-letter { align-self: flex-start; }
+.error-note { color: var(--warn); min-height: 1.4em; font-size: .92rem; margin: 8px 0 0; }
+.sequence { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(7px, 2vw, 13px); margin: 28px 0; }
+.digit { font-size: clamp(1.85rem, 7vw, 2.6rem); font-weight: 750; line-height: 1.25; min-width: 1.05em; text-align: center; font-variant-numeric: tabular-nums; }
+.recall-input { width: 100%; max-width: 440px; min-height: 56px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); font-size: 1rem; }
+.memory-area { display: grid; justify-items: center; gap: 14px; margin: 22px 0; }
+.symbol-targets { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 18px 0 24px; }
+.target-symbol { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); padding: 7px; width: 74px; height: 74px; display: grid; place-items: center; }
+.target-symbol svg { width: 58px; height: 58px; color: var(--text); }
+.symbol-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 14px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); margin: 16px 0 0; }
+.symbol-cell { display: grid; place-items: center; width: clamp(39px, 11vw, 48px); height: clamp(39px, 11vw, 48px); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.symbol-cell svg { width: 36px; height: 36px; color: var(--text); }
+.notice { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-soft); color: var(--muted); padding: 11px 13px; font-size: .91rem; margin: 0 0 15px; }
+.results-header { margin-bottom: 20px; }
+.overall { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-soft); margin: 18px 0 16px; }
+.overall-number { font-size: clamp(2.5rem, 10vw, 3.5rem); line-height: 1; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.overall-copy { flex: 1; min-width: 190px; }
+.overall-copy strong { display: block; margin-bottom: 4px; }
+.chart-list { display: grid; gap: 18px; margin-top: 20px; }
+.domain-result { border-bottom: 1px solid var(--line); padding-bottom: 17px; }
+.domain-result:last-child { border-bottom: 0; }
+.domain-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 7px; }
+.domain-name { font-weight: 800; }
+.domain-value { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.domain-meter { width: 100%; height: 12px; background: var(--line); border-radius: 999px; overflow: hidden; position: relative; }
+.domain-meter-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+.domain-interpretation { color: var(--muted); font-size: .94rem; margin: 8px 0 0; }
+.method-box { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-top: 18px; }
+.method-box h2 { margin-top: 0; }
+footer { color: var(--muted); font-size: .83rem; text-align: center; padding: 18px 8px 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 420px) {
+  body { font-size: 16px; }
+  .wrap { width: min(100% - 18px, 820px); padding-top: 12px; }
+  .card { border-radius: 14px; }
+  .option-grid:not(.visual) .option { align-items: flex-start; }
+  .actions .btn { width: 100%; }
+  .local-note { font-size: .77rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<main class="wrap" id="app" aria-live="off"></main>
+<script>
+'use strict';
+
+/* All assessment content and scoring run locally. This file makes no network requests. */
+const STORAGE_KEY = 'cognitiveProfileScreening.v1';
+const DOMAIN_ORDER = ['matrix', 'verbal', 'quant', 'memory', 'speed'];
+const DOMAIN_LABELS = {
+  matrix: 'Fluid reasoning',
+  verbal: 'Verbal comprehension',
+  quant: 'Quantitative reasoning',
+  memory: 'Working memory',
+  speed: 'Processing speed'
+};
+const DOMAIN_DESCRIPTIONS = {
+  matrix: 'Finding relationships and rules in visual patterns.',
+  verbal: 'Understanding word meanings, relationships, and concepts.',
+  quant: 'Working with numerical relationships and mental arithmetic.',
+  memory: 'Keeping short sequences in mind and reproducing them.',
+  speed: 'Scanning visual information accurately under a time limit.'
+};
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const SHAPE = (shape, fill = 'none') => ({ type: 'shape', shape, fill });
+const DOTS = count => ({ type: 'dots', count });
+const ARROW = angle => ({ type: 'arrow', angle });
+const COMPOUND = (shape, count) => ({ type: 'compound', shape, count });
+const SYMBOL = (shape, fill = 'none') => ({ type: 'shape', shape, fill });
+
+const ITEMS = [
+{ id: 'm2', domain: 'matrix', difficulty: 'Starting level', prompt: 'Choose the tile that completes the pattern. The shape and fill both matter.', dimension: 2,
+    cells: [SHAPE('circle', 'none'), SHAPE('circle', 'solid'), SHAPE('square', 'none'), null],
+    options: [SHAPE('triangle', 'solid'), SHAPE('square', 'none'), SHAPE('square', 'solid'), SHAPE('circle', 'solid')], answerIndex: 2 },
+{ id: 'm3', domain: 'matrix', difficulty: 'Intermediate', prompt: 'The shapes follow the same repeating order across each row and down each column. Choose the missing tile.', dimension: 3,
+    cells: [SHAPE('circle'), SHAPE('square'), SHAPE('triangle'), SHAPE('square'), SHAPE('triangle'), SHAPE('diamond'), SHAPE('triangle'), SHAPE('diamond'), null],
+    options: [SHAPE('square'), SHAPE('circle'), SHAPE('diamond'), SHAPE('triangle')], answerIndex: 1 },
+{ id: 'm4', domain: 'matrix', difficulty: 'Intermediate', prompt: 'The number of dots increases by one as you move right or down. Choose the missing tile.', dimension: 3,
+    cells: [DOTS(1), DOTS(2), DOTS(3), DOTS(2), DOTS(3), DOTS(4), DOTS(3), DOTS(4), null],
+    options: [DOTS(4), DOTS(5), DOTS(6), DOTS(3)], answerIndex: 1 },
+{ id: 'm5', domain: 'matrix', difficulty: 'Advanced', prompt: 'The arrow turns by the same amount at each step to the right and down. Choose the missing tile.', dimension: 3,
+    cells: [ARROW(0), ARROW(45), ARROW(90), ARROW(45), ARROW(90), ARROW(135), ARROW(90), ARROW(135), null],
+    options: [ARROW(90), ARROW(180), ARROW(135), ARROW(45)], answerIndex: 1 },
+{ id: 'm6', domain: 'matrix', difficulty: 'Advanced', prompt: 'The outer shape changes as you move down; the number of inner dots changes as you move right. Choose the missing tile.', dimension: 3,
+    cells: [COMPOUND('circle', 1), COMPOUND('circle', 2), COMPOUND('circle', 3), COMPOUND('square', 1), COMPOUND('square', 2), COMPOUND('square', 3), COMPOUND('triangle', 1), COMPOUND('triangle', 2), null],
+    options: [COMPOUND('triangle', 2), COMPOUND('square', 3), COMPOUND('triangle', 3), COMPOUND('circle', 3)], answerIndex: 2 },
+{ id: 'gf2', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `Select the option that logically completes the bottom-right cell. The pointer rotates one corner clockwise and the fill toggles on each step.`, cells: [], options: [], answerIndex: 0 },
+{ id: 'gf3', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `The number of bars changes across the columns; the angle changes down the rows. Select the missing cell.`, cells: [], options: [], answerIndex: 0 },
+{ id: 'gf4', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `In each row, one cell holds the sum of the dot counts of the other two. The outer shapes cycle left each row.`, cells: [], options: [], answerIndex: 0 },
+{ id: 'gf5', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `In each row, the third cell is the union of the spokes in the first two cells; a filled centre becomes empty when repeated.`, cells: [], options: [], answerIndex: 0 },
+{ id: 'gf6', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `In each row, the third cell shades the squares that appear in exactly one of the first two cells (like an XOR).`, cells: [], options: [], answerIndex: 0 },
+{ id: 'v1', domain: 'verbal', kind: 'mc', prompt: 'What does “laconic” most nearly mean?', options: ['Expressed in few words', 'Excessively formal', 'Changing frequently', 'Difficult to dispute'], answerIndex: 0 },
+{ id: 'v2', domain: 'verbal', kind: 'mc', prompt: 'Blueprint is to building as score is to…', options: ['Audience', 'Performance', 'Conductor', 'Instrument'], answerIndex: 1 },
+{ id: 'v3', domain: 'verbal', kind: 'mc', prompt: 'Catalyst is to reaction as spark is to…', options: ['Smoke', 'Ignition', 'Ash', 'Fuel'], answerIndex: 1 },
+{ id: 'v4', domain: 'verbal', kind: 'mc', prompt: 'Which item does not belong with the others?', stem: 'Oak · ash · birch · granite', options: ['Oak', 'Ash', 'Birch', 'Granite'], answerIndex: 3 },
+{ id: 'v5', domain: 'verbal', kind: 'mc', prompt: 'Which statement best captures a similarity between a hypothesis and a scientific model?', options: ['Both can explain or represent something and be revised with evidence', 'Both must be proven true once and never changed', 'Both are the same as a theory', 'Both are purely mathematical'], answerIndex: 0 },
+{ id: 'gv1', domain: 'verbal', kind: 'mc', prompt: 'Which phrase best defines the word “ephemeral”?', options: ['Lasting for a very short time', 'Difficult to interpret or verify', 'Distributed equally', 'Formed in layers'], answerIndex: 0 },
+{ id: 'gv3', domain: 'verbal', kind: 'mc', prompt: 'Complete the analogy: Taciturn is to Words as Frugal is to …', options: ['Patience', 'Tradition', 'Money', 'Praise'], answerIndex: 2 },
+{ id: 'gv4', domain: 'verbal', kind: 'mc', prompt: 'Three of the following words share a core meaning. Which word does NOT belong?', options: ['Arbitrate', 'Mediate', 'Conciliate', 'Instigate'], answerIndex: 3 },
+{ id: 'gv5', domain: 'verbal', kind: 'mc', prompt: 'In what fundamental way are a thermometer and a compass alike?', options: ['Both are instruments that indicate environmental conditions.', 'Both are powered by electricity.', 'Both measure speed.', 'Both are used only outdoors.'], answerIndex: 0 },
+{ id: 'q1', domain: 'quant', kind: 'mc', prompt: 'Calculate mentally: 47 + 28 =', options: ['73', '75', '76', '65'], answerIndex: 1 },
+{ id: 'q2', domain: 'quant', kind: 'mc', prompt: 'Calculate mentally: 84 ÷ 7 + 6 =', options: ['12', '18', '20', '14'], answerIndex: 1 },
+{ id: 'q4', domain: 'quant', kind: 'mc', prompt: 'What number comes next? 2, 5, 11, 23, …', options: ['45', '46', '47', '48'], answerIndex: 2 },
+{ id: 'q5', domain: 'quant', kind: 'mc', prompt: 'A price of £75 is reduced by 20%. What is the new price?', options: ['£55', '£60', '£65', '£62.50'], answerIndex: 1 },
+{ id: 'gq1', domain: 'quant', kind: 'mc', prompt: 'A pack of notebooks costs £4.50. If you buy 4 packs and pay with a £20 note, how much change should you receive?', options: ['£1.50', '£2.00', '£2.50', '£3.00'], answerIndex: 0 },
+{ id: 'gq2', domain: 'quant', kind: 'mc', prompt: 'What number comes next in this sequence? 3, 7, 15, 31, 63, …', options: ['95', '125', '127', '129'], answerIndex: 2 },
+{ id: 'gq3', domain: 'quant', kind: 'mc', prompt: 'A water pump fills 3/5 of a tank in 18 minutes at a constant rate. How many minutes does it take to fill the entire tank from empty?', options: ['24', '26', '30', '36'], answerIndex: 3 },
+{ id: 'gq4', domain: 'quant', kind: 'mc', prompt: 'What number comes next in this sequence? 4, 6, 12, 14, 28, 30, …', options: ['32', '56', '60', '62'], answerIndex: 2 },
+{ id: 'gq5', domain: 'quant', kind: 'mc', prompt: 'In a room of 80 people, 25% are wearing headphones. Later, 30 people NOT wearing headphones leave. What percentage of the remaining people are wearing headphones?', options: ['33 1/3%', '40%', '50%', '60%'], answerIndex: 2 },
+{ id: 'w1', domain: 'memory', kind: 'memory', direction: 'forward', sequence: '48291', digits: 5, prompt: 'Remember the digits in the same order. Do not write them down or use another device.' },
+{ id: 'w2', domain: 'memory', kind: 'memory', direction: 'forward', sequence: '739162', digits: 6, prompt: 'Remember the digits in the same order. Do not write them down or use another device.' },
+{ id: 'w3', domain: 'memory', kind: 'memory', direction: 'forward', sequence: '5827491', digits: 7, prompt: 'Remember the digits in the same order. Do not write them down or use another device.' },
+{ id: 'w4', domain: 'memory', kind: 'memory', direction: 'backward', sequence: '418', digits: 3, prompt: 'Remember the digits. You will be asked to enter them in reverse order.' },
+{ id: 'w5', domain: 'memory', kind: 'memory', direction: 'backward', sequence: '6295', digits: 4, prompt: 'Remember the digits. You will be asked to enter them in reverse order.' },
+{ id: 's1', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [SYMBOL('circle', 'solid'), SYMBOL('triangle', 'none')],
+    row: [SYMBOL('circle', 'solid'), SYMBOL('triangle', 'none'), SYMBOL('square', 'none'), SYMBOL('circle', 'solid'), SYMBOL('diamond', 'solid'), SYMBOL('square', 'none')], answerIndex: 3 },
+{ id: 's2', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [SYMBOL('square', 'none'), SYMBOL('triangle', 'solid')],
+    row: [SYMBOL('square', 'none'), SYMBOL('circle', 'none'), SYMBOL('triangle', 'solid'), SYMBOL('diamond', 'none'), SYMBOL('square', 'none'), SYMBOL('circle', 'solid'), SYMBOL('triangle', 'solid')], answerIndex: 3 },
+{ id: 's3', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [SYMBOL('diamond', 'solid'), SYMBOL('circle', 'none')],
+    row: [SYMBOL('circle', 'none'), SYMBOL('square', 'solid'), SYMBOL('diamond', 'solid'), SYMBOL('triangle', 'none'), SYMBOL('circle', 'solid'), SYMBOL('diamond', 'solid')], answerIndex: 3 },
+{ id: 's4', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [SYMBOL('triangle', 'none'), SYMBOL('square', 'solid')],
+    row: [SYMBOL('triangle', 'none'), SYMBOL('square', 'solid'), SYMBOL('circle', 'solid'), SYMBOL('square', 'solid'), SYMBOL('diamond', 'none'), SYMBOL('triangle', 'solid'), SYMBOL('square', 'none')], answerIndex: 3 },
+{ id: 'gs1', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [{ type: 'raw', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>` }], row: [], answerIndex: 0 },
+{ id: 'gs2', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [{ type: 'raw', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>` }], row: [], answerIndex: 0 },
+{ id: 'gs3', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [{ type: 'raw', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>` }], row: [], answerIndex: 0 },
+{ id: 'gs4', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [{ type: 'raw', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>` }], row: [], answerIndex: 0 },
+];
+
+const app = document.getElementById('app');
+let session = null;
+let timerHandle = null;
+let lastClockValue = null;
+let isTransitioning = false;
+
+function cloneItems() {
+  const cloned = JSON.parse(JSON.stringify(ITEMS));
+  // Shuffle answer positions once per session; the saved session preserves the layout on resume.
+  cloned.forEach(item => {
+    if (!Array.isArray(item.options) || typeof item.answerIndex !== 'number') return;
+    const options = item.options.map((value, index) => ({ value, correct: index === item.answerIndex }));
+    for (let i = options.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [options[i], options[j]] = [options[j], options[i]];
+    }
+    item.options = options.map(option => option.value);
+    item.answerIndex = options.findIndex(option => option.correct);
+  });
+  return cloned;
+}
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+function saveSession() {
+  if (!session) return;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(session)); }
+  catch (err) { /* Assessment remains usable for this tab if storage is unavailable. */ }
+}
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || data.version !== 1 || !Array.isArray(data.items) || data.items.length !== ITEMS.length) return null;
+    return data;
+  } catch (err) { return null; }
+}
+function clearTimer() {
+  if (timerHandle !== null) clearInterval(timerHandle);
+  timerHandle = null;
+  lastClockValue = null;
+}
+function makeSession(reducedPressure) {
+  return {
+    version: 1,
+    createdAt: Date.now(),
+    reducedPressure: !!reducedPressure,
+    index: 0,
+    answers: {},
+    items: cloneItems(),
+    selectedOption: null,
+    memoryDraft: '',
+    memoryState: {},
+    quantDeadline: null,
+    speedDeadline: null,
+    speedTimerItemId: null,
+    notice: '',
+    complete: false
+  };
+}
+function currentItem() { return session && session.items[session.index]; }
+function isAnswered(item) { return Object.prototype.hasOwnProperty.call(session.answers, item.id); }
+
+function renderIntro() {
+  clearTimer();
+  const saved = loadSession();
+  const savedIncomplete = saved && !saved.complete && saved.index < saved.items.length;
+  const savedComplete = saved && (saved.complete || saved.index >= saved.items.length);
+  app.innerHTML = `
+    <div class="topline"><div class="eyebrow">Intelligere</div><div class="local-note">Private · Free · Offline</div></div>
+    <section class="card" aria-labelledby="intro-title">
+      <h1 class="intro-title" id="intro-title">Intelligere</h1>
+      <p class="muted" style="margin-top:-6px">A private cognitive profile screening</p>
+      <p>This short set of tasks samples five kinds of thinking: visual patterns, language, numerical relationships, short-term recall, and visual scanning. It is designed for private reflection, not diagnosis.</p>
+      <p class="muted">There are 41 items. Most people should allow around 15–20 minutes in standard mode. Work without a calculator, notes, or outside help. No item gives feedback during the a
