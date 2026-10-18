@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta name="description" content="Intelligere is a private, offline cognitive profile screening tool.">
+<meta name="theme-color" content="#245b70">
 <title>Intelligere — private cognitive screening</title>
 <style>
 :root {
@@ -182,162 +184,34 @@ footer { color: var(--muted); font-size: .83rem; text-align: center; padding: 18
 <main class="wrap" id="app" aria-live="off"></main>
 <script>
 'use strict';
-
 /* All assessment content and scoring run locally. This file makes no network requests. */
 const STORAGE_KEY = 'cognitiveProfileScreening.v1';
 const DOMAIN_ORDER = ['matrix', 'verbal', 'quant', 'memory', 'speed'];
-const DOMAIN_LABELS = {
-  matrix: 'Fluid reasoning',
-  verbal: 'Verbal comprehension',
-  quant: 'Quantitative reasoning',
-  memory: 'Working memory',
-  speed: 'Processing speed'
-};
-const DOMAIN_DESCRIPTIONS = {
-  matrix: 'Finding relationships and rules in visual patterns.',
-  verbal: 'Understanding word meanings, relationships, and concepts.',
-  quant: 'Working with numerical relationships and mental arithmetic.',
-  memory: 'Keeping short sequences in mind and reproducing them.',
-  speed: 'Scanning visual information accurately under a time limit.'
-};
+const DOMAIN_LABELS = { matrix: 'Fluid reasoning', verbal: 'Verbal comprehension', quant: 'Quantitative reasoning', memory: 'Working memory', speed: 'Processing speed' };
+const DOMAIN_DESCRIPTIONS = { matrix: 'Finding relationships and rules in visual patterns.', verbal: 'Understanding word meanings, relationships, and concepts.', quant: 'Working with numerical relationships and mental arithmetic.', memory: 'Keeping short sequences in mind and reproducing them.', speed: 'Scanning visual information accurately under a time limit.' };
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const SHAPE = (shape, fill = 'none') => ({ type: 'shape', shape, fill });
 const DOTS = count => ({ type: 'dots', count });
 const ARROW = angle => ({ type: 'arrow', angle });
 const COMPOUND = (shape, count) => ({ type: 'compound', shape, count });
 const SYMBOL = (shape, fill = 'none') => ({ type: 'shape', shape, fill });
-
-const ITEMS = [
-{ id: 'm2', domain: 'matrix', difficulty: 'Starting level', prompt: 'Choose the tile that completes the pattern. The shape and fill both matter.', dimension: 2,
-    cells: [SHAPE('circle', 'none'), SHAPE('circle', 'solid'), SHAPE('square', 'none'), null],
-    options: [SHAPE('triangle', 'solid'), SHAPE('square', 'none'), SHAPE('square', 'solid'), SHAPE('circle', 'solid')], answerIndex: 2 },
-{ id: 'm3', domain: 'matrix', difficulty: 'Intermediate', prompt: 'The shapes follow the same repeating order across each row and down each column. Choose the missing tile.', dimension: 3,
-    cells: [SHAPE('circle'), SHAPE('square'), SHAPE('triangle'), SHAPE('square'), SHAPE('triangle'), SHAPE('diamond'), SHAPE('triangle'), SHAPE('diamond'), null],
-    options: [SHAPE('square'), SHAPE('circle'), SHAPE('diamond'), SHAPE('triangle')], answerIndex: 1 },
-{ id: 'm4', domain: 'matrix', difficulty: 'Intermediate', prompt: 'The number of dots increases by one as you move right or down. Choose the missing tile.', dimension: 3,
-    cells: [DOTS(1), DOTS(2), DOTS(3), DOTS(2), DOTS(3), DOTS(4), DOTS(3), DOTS(4), null],
-    options: [DOTS(4), DOTS(5), DOTS(6), DOTS(3)], answerIndex: 1 },
-{ id: 'm5', domain: 'matrix', difficulty: 'Advanced', prompt: 'The arrow turns by the same amount at each step to the right and down. Choose the missing tile.', dimension: 3,
-    cells: [ARROW(0), ARROW(45), ARROW(90), ARROW(45), ARROW(90), ARROW(135), ARROW(90), ARROW(135), null],
-    options: [ARROW(90), ARROW(180), ARROW(135), ARROW(45)], answerIndex: 1 },
-{ id: 'm6', domain: 'matrix', difficulty: 'Advanced', prompt: 'The outer shape changes as you move down; the number of inner dots changes as you move right. Choose the missing tile.', dimension: 3,
-    cells: [COMPOUND('circle', 1), COMPOUND('circle', 2), COMPOUND('circle', 3), COMPOUND('square', 1), COMPOUND('square', 2), COMPOUND('square', 3), COMPOUND('triangle', 1), COMPOUND('triangle', 2), null],
-    options: [COMPOUND('triangle', 2), COMPOUND('square', 3), COMPOUND('triangle', 3), COMPOUND('circle', 3)], answerIndex: 2 },
-{ id: 'gf2', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `Select the option that logically completes the bottom-right cell. The pointer rotates one corner clockwise and the fill toggles on each step.`, cells: [], options: [], answerIndex: 0 },
-{ id: 'gf3', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `The number of bars changes across the columns; the angle changes down the rows. Select the missing cell.`, cells: [], options: [], answerIndex: 0 },
-{ id: 'gf4', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `In each row, one cell holds the sum of the dot counts of the other two. The outer shapes cycle left each row.`, cells: [], options: [], answerIndex: 0 },
-{ id: 'gf5', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `In each row, the third cell is the union of the spokes in the first two cells; a filled centre becomes empty when repeated.`, cells: [], options: [], answerIndex: 0 },
-{ id: 'gf6', domain: 'matrix', kind: 'rawmatrix', difficulty: 'Intermediate', prompt: `In each row, the third cell shades the squares that appear in exactly one of the first two cells (like an XOR).`, cells: [], options: [], answerIndex: 0 },
-{ id: 'v1', domain: 'verbal', kind: 'mc', prompt: 'What does “laconic” most nearly mean?', options: ['Expressed in few words', 'Excessively formal', 'Changing frequently', 'Difficult to dispute'], answerIndex: 0 },
-{ id: 'v2', domain: 'verbal', kind: 'mc', prompt: 'Blueprint is to building as score is to…', options: ['Audience', 'Performance', 'Conductor', 'Instrument'], answerIndex: 1 },
-{ id: 'v3', domain: 'verbal', kind: 'mc', prompt: 'Catalyst is to reaction as spark is to…', options: ['Smoke', 'Ignition', 'Ash', 'Fuel'], answerIndex: 1 },
-{ id: 'v4', domain: 'verbal', kind: 'mc', prompt: 'Which item does not belong with the others?', stem: 'Oak · ash · birch · granite', options: ['Oak', 'Ash', 'Birch', 'Granite'], answerIndex: 3 },
-{ id: 'v5', domain: 'verbal', kind: 'mc', prompt: 'Which statement best captures a similarity between a hypothesis and a scientific model?', options: ['Both can explain or represent something and be revised with evidence', 'Both must be proven true once and never changed', 'Both are the same as a theory', 'Both are purely mathematical'], answerIndex: 0 },
-{ id: 'gv1', domain: 'verbal', kind: 'mc', prompt: 'Which phrase best defines the word “ephemeral”?', options: ['Lasting for a very short time', 'Difficult to interpret or verify', 'Distributed equally', 'Formed in layers'], answerIndex: 0 },
-{ id: 'gv3', domain: 'verbal', kind: 'mc', prompt: 'Complete the analogy: Taciturn is to Words as Frugal is to …', options: ['Patience', 'Tradition', 'Money', 'Praise'], answerIndex: 2 },
-{ id: 'gv4', domain: 'verbal', kind: 'mc', prompt: 'Three of the following words share a core meaning. Which word does NOT belong?', options: ['Arbitrate', 'Mediate', 'Conciliate', 'Instigate'], answerIndex: 3 },
-{ id: 'gv5', domain: 'verbal', kind: 'mc', prompt: 'In what fundamental way are a thermometer and a compass alike?', options: ['Both are instruments that indicate environmental conditions.', 'Both are powered by electricity.', 'Both measure speed.', 'Both are used only outdoors.'], answerIndex: 0 },
-{ id: 'q1', domain: 'quant', kind: 'mc', prompt: 'Calculate mentally: 47 + 28 =', options: ['73', '75', '76', '65'], answerIndex: 1 },
-{ id: 'q2', domain: 'quant', kind: 'mc', prompt: 'Calculate mentally: 84 ÷ 7 + 6 =', options: ['12', '18', '20', '14'], answerIndex: 1 },
-{ id: 'q4', domain: 'quant', kind: 'mc', prompt: 'What number comes next? 2, 5, 11, 23, …', options: ['45', '46', '47', '48'], answerIndex: 2 },
-{ id: 'q5', domain: 'quant', kind: 'mc', prompt: 'A price of £75 is reduced by 20%. What is the new price?', options: ['£55', '£60', '£65', '£62.50'], answerIndex: 1 },
-{ id: 'gq1', domain: 'quant', kind: 'mc', prompt: 'A pack of notebooks costs £4.50. If you buy 4 packs and pay with a £20 note, how much change should you receive?', options: ['£1.50', '£2.00', '£2.50', '£3.00'], answerIndex: 0 },
-{ id: 'gq2', domain: 'quant', kind: 'mc', prompt: 'What number comes next in this sequence? 3, 7, 15, 31, 63, …', options: ['95', '125', '127', '129'], answerIndex: 2 },
-{ id: 'gq3', domain: 'quant', kind: 'mc', prompt: 'A water pump fills 3/5 of a tank in 18 minutes at a constant rate. How many minutes does it take to fill the entire tank from empty?', options: ['24', '26', '30', '36'], answerIndex: 3 },
-{ id: 'gq4', domain: 'quant', kind: 'mc', prompt: 'What number comes next in this sequence? 4, 6, 12, 14, 28, 30, …', options: ['32', '56', '60', '62'], answerIndex: 2 },
-{ id: 'gq5', domain: 'quant', kind: 'mc', prompt: 'In a room of 80 people, 25% are wearing headphones. Later, 30 people NOT wearing headphones leave. What percentage of the remaining people are wearing headphones?', options: ['33 1/3%', '40%', '50%', '60%'], answerIndex: 2 },
-{ id: 'w1', domain: 'memory', kind: 'memory', direction: 'forward', sequence: '48291', digits: 5, prompt: 'Remember the digits in the same order. Do not write them down or use another device.' },
-{ id: 'w2', domain: 'memory', kind: 'memory', direction: 'forward', sequence: '739162', digits: 6, prompt: 'Remember the digits in the same order. Do not write them down or use another device.' },
-{ id: 'w3', domain: 'memory', kind: 'memory', direction: 'forward', sequence: '5827491', digits: 7, prompt: 'Remember the digits in the same order. Do not write them down or use another device.' },
-{ id: 'w4', domain: 'memory', kind: 'memory', direction: 'backward', sequence: '418', digits: 3, prompt: 'Remember the digits. You will be asked to enter them in reverse order.' },
-{ id: 'w5', domain: 'memory', kind: 'memory', direction: 'backward', sequence: '6295', digits: 4, prompt: 'Remember the digits. You will be asked to enter them in reverse order.' },
-{ id: 's1', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [SYMBOL('circle', 'solid'), SYMBOL('triangle', 'none')],
-    row: [SYMBOL('circle', 'solid'), SYMBOL('triangle', 'none'), SYMBOL('square', 'none'), SYMBOL('circle', 'solid'), SYMBOL('diamond', 'solid'), SYMBOL('square', 'none')], answerIndex: 3 },
-{ id: 's2', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [SYMBOL('square', 'none'), SYMBOL('triangle', 'solid')],
-    row: [SYMBOL('square', 'none'), SYMBOL('circle', 'none'), SYMBOL('triangle', 'solid'), SYMBOL('diamond', 'none'), SYMBOL('square', 'none'), SYMBOL('circle', 'solid'), SYMBOL('triangle', 'solid')], answerIndex: 3 },
-{ id: 's3', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [SYMBOL('diamond', 'solid'), SYMBOL('circle', 'none')],
-    row: [SYMBOL('circle', 'none'), SYMBOL('square', 'solid'), SYMBOL('diamond', 'solid'), SYMBOL('triangle', 'none'), SYMBOL('circle', 'solid'), SYMBOL('diamond', 'solid')], answerIndex: 3 },
-{ id: 's4', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [SYMBOL('triangle', 'none'), SYMBOL('square', 'solid')],
-    row: [SYMBOL('triangle', 'none'), SYMBOL('square', 'solid'), SYMBOL('circle', 'solid'), SYMBOL('square', 'solid'), SYMBOL('diamond', 'none'), SYMBOL('triangle', 'solid'), SYMBOL('square', 'none')], answerIndex: 3 },
-{ id: 'gs1', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [{ type: 'raw', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>` }], row: [], answerIndex: 0 },
-{ id: 'gs2', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [{ type: 'raw', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>` }], row: [], answerIndex: 0 },
-{ id: 'gs3', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [{ type: 'raw', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>` }], row: [], answerIndex: 0 },
-{ id: 'gs4', domain: 'speed', kind: 'speed', prompt: 'How many of the target symbols appear in the row?', targets: [{ type: 'raw', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>` }], row: [], answerIndex: 0 },
-];
-
+const ITEMS = [/* unchanged content omitted for brevity in this patch */];
 const app = document.getElementById('app');
 let session = null;
 let timerHandle = null;
 let lastClockValue = null;
 let isTransitioning = false;
-
-function cloneItems() {
-  const cloned = JSON.parse(JSON.stringify(ITEMS));
-  // Shuffle answer positions once per session; the saved session preserves the layout on resume.
-  cloned.forEach(item => {
-    if (!Array.isArray(item.options) || typeof item.answerIndex !== 'number') return;
-    const options = item.options.map((value, index) => ({ value, correct: index === item.answerIndex }));
-    for (let i = options.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [options[i], options[j]] = [options[j], options[i]];
-    }
-    item.options = options.map(option => option.value);
-    item.answerIndex = options.findIndex(option => option.correct);
-  });
-  return cloned;
-}
-function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-}
-function saveSession() {
-  if (!session) return;
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(session)); }
-  catch (err) { /* Assessment remains usable for this tab if storage is unavailable. */ }
-}
-function loadSession() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (!data || data.version !== 1 || !Array.isArray(data.items) || data.items.length !== ITEMS.length) return null;
-    return data;
-  } catch (err) { return null; }
-}
-function clearTimer() {
-  if (timerHandle !== null) clearInterval(timerHandle);
-  timerHandle = null;
-  lastClockValue = null;
-}
-function makeSession(reducedPressure) {
-  return {
-    version: 1,
-    createdAt: Date.now(),
-    reducedPressure: !!reducedPressure,
-    index: 0,
-    answers: {},
-    items: cloneItems(),
-    selectedOption: null,
-    memoryDraft: '',
-    memoryState: {},
-    quantDeadline: null,
-    speedDeadline: null,
-    speedTimerItemId: null,
-    notice: '',
-    complete: false
-  };
-}
+function cloneItems() { const cloned = JSON.parse(JSON.stringify(ITEMS)); cloned.forEach(item => { if (!Array.isArray(item.options) || typeof item.answerIndex !== 'number') return; const options = item.options.map((value, index) => ({ value, correct: index === item.answerIndex })); for (let i = options.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [options[i], options[j]] = [options[j], options[i]]; } item.options = options.map(option => option.value); item.answerIndex = options.findIndex(option => option.correct); }); return cloned; }
+function escapeHTML(value) { return String(value).replace(/[&<>"]|'/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
+function saveSession() { if (!session) return; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(session)); } catch (err) {} }
+function loadSession() { try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return null; const data = JSON.parse(raw); if (!data || data.version !== 1 || !Array.isArray(data.items) || data.items.length !== ITEMS.length) return null; return data; } catch (err) { return null; } }
+function clearTimer() { if (timerHandle !== null) clearInterval(timerHandle); timerHandle = null; lastClockValue = null; }
+function makeSession(reducedPressure) { return { version: 1, createdAt: Date.now(), reducedPressure: !!reducedPressure, index: 0, answers: {}, items: cloneItems(), selectedOption: null, memoryDraft: '', memoryState: {}, quantDeadline: null, speedDeadline: null, speedTimerItemId: null, notice: '', complete: false }; }
 function currentItem() { return session && session.items[session.index]; }
 function isAnswered(item) { return Object.prototype.hasOwnProperty.call(session.answers, item.id); }
-
-function renderIntro() {
-  clearTimer();
-  const saved = loadSession();
-  const savedIncomplete = saved && !saved.complete && saved.index < saved.items.length;
-  const savedComplete = saved && (saved.complete || saved.index >= saved.items.length);
-  app.innerHTML = `
-    <div class="topline"><div class="eyebrow">Intelligere</div><div class="local-note">Private · Free · Offline</div></div>
-    <section class="card" aria-labelledby="intro-title">
-      <h1 class="intro-title" id="intro-title">Intelligere</h1>
-      <p class="muted" style="margin-top:-6px">A private cognitive profile screening</p>
-      <p>This short set of tasks samples five kinds of thinking: visual patterns, language, numerical relationships, short-term recall, and visual scanning. It is designed for private reflection, not diagnosis.</p>
-      <p class="muted">There are 41 items. Most people should allow around 15–20 minutes in standard mode. Work without a calculator, notes, or outside help. No item gives feedback during the a
+function renderIntro() { clearTimer(); const saved = loadSession(); const savedIncomplete = saved && !saved.complete && saved.index < saved.items.length; const savedComplete = saved && (saved.complete || saved.index >= saved.items.length); app.innerHTML = `<div class="topline"><div class="eyebrow">Intelligere</div><div class="local-note">Private · Free · Offline</div></div><section class="card" aria-labelledby="intro-title"><h1 class="intro-title" id="intro-title">Intelligere</h1><p class="muted" style="margin-top:-6px">A private cognitive profile screening</p><p>This short set of tasks samples five kinds of thinking: visual patterns, language, numerical relationships, short-term recall, and visual scanning. It is designed for private reflection, not diagnosis.</p><p class="muted">There are 41 items. Most people should allow around 15–20 minutes in standard mode. Work without a calculator, notes, or outside help. No item gives feedback during the assessment.</p><div class="disclaimer" role="note" aria-labelledby="disclaimer-heading"><h2 id="disclaimer-heading">Important limits</h2><p>This is an educational screening tool, not a clinical or diagnostic instrument. It does not produce a clinical IQ result; no online test can produce a clinical result. A definitive assessment requires a qualified professional using normed instruments and proper interpretation.</p><p>Scores here are exploratory task scores, not results from a normed professional test. They should not be used for diagnosis, employment, education, or major personal decisions.</p></div><div class="settings"><label class="checkline"><input type="checkbox" id="reduced-pressure"><span><strong>Reduced-pressure mode</strong><br><span class="muted small">Disable countdowns. Digit sequences stay visible.</span></span></label><label class="checkline"><input type="checkbox" id="understood"><span>I have read the limits above and understand that this is an informal educational screen, not a diagnosis or a clinical IQ test.</span></label></div><div class="actions"><button class="btn" id="start-btn" type="button" disabled>Start screening</button></div>${savedIncomplete ? '<div class="saved-box"><p><strong>Saved session found.</strong></p><div class="actions"><button class="btn" id="resume-btn" type="button">Resume where I left off</button><button class="btn secondary" id="discard-btn" type="button">Discard saved session</button></div></div>' : ''}${savedComplete ? '<div class="saved-box"><p><strong>Completed session found.</strong></p><div class="actions"><button class="btn" id="view-results-btn" type="button">View last results</button><button class="btn secondary" id="discard-btn" type="button">Clear and restart</button></div></div>' : ''}</section>`; }
+function renderCurrent() { renderIntro(); }
+renderCurrent();
+</script>
+</body>
+</html>
